@@ -350,7 +350,7 @@ public class VisibilityPlugin: IDalamudPlugin
 			return;
 		}
 
-		string playerName = $"{args[0].ToUppercase()} {args[1].ToUppercase()}";
+		string playerName = $"{args[1]}";
 
 		VoidItem voidItem;
 		GameObject? gameObject = Service.ObjectTable.SingleOrDefault(
@@ -465,7 +465,7 @@ public class VisibilityPlugin: IDalamudPlugin
 			return;
 		}
 
-		string playerName = $"{args[0].ToUppercase()} {args[1].ToUppercase()}";
+		string playerName = $"{args[1]}";
 
 		PlayerCharacter? actor = Service.ObjectTable.SingleOrDefault(
 			x =>

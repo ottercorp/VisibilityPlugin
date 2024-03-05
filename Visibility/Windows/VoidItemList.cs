@@ -47,7 +47,7 @@ public class VoidItemList: Window
 			return;
 		}
 
-		ImGui.TableSetupColumn(VisibilityPlugin.Instance.PluginLocalization.ColumnFirstname);
+		ImGui.TableSetupColumn(VisibilityPlugin.Instance.PluginLocalization.ColumnFirstname, ImGuiTableColumnFlags.Disabled);
 		ImGui.TableSetupColumn(VisibilityPlugin.Instance.PluginLocalization.ColumnLastname);
 		ImGui.TableSetupColumn(VisibilityPlugin.Instance.PluginLocalization.ColumnWorld);
 		ImGui.TableSetupColumn(

@@ -13,12 +13,11 @@ public class VoidItem
 	[JsonIgnore]
 	public string Name
 	{
-		get => $"{this.Firstname} {this.Lastname}";
+		get => $"{this.Lastname}";
 		set
 		{
-			string[] name = value.Split(' ');
-			this.Firstname = name[0].ToUppercase();
-			this.Lastname = name[1].ToUppercase();
+			this.Firstname = "";
+			this.Lastname = value;
 
 			byte[] nameBytes = Encoding.UTF8.GetBytes(this.Name + '\0');
 			this.NameBytes = nameBytes.Length < 64 ? nameBytes : nameBytes.Take(64).ToArray();
