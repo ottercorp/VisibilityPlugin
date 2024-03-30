@@ -35,7 +35,7 @@ public class VoidItemList: Window
 
 	private readonly bool isWhitelist;
 
-	private readonly byte[][] buffer = { new byte[16], new byte[16], new byte[128], new byte[128], };
+	private readonly byte[][] buffer = { new byte[64], new byte[64], new byte[128], new byte[128], };
 
 	public override void Draw()
 	{
