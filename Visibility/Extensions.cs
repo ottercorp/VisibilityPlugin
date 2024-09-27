@@ -26,9 +26,9 @@ public static class Extensions
 		}
 	}
 
-	public static string GetFirstname(this GameObject actor) => "";
+	public static string GetFirstname(this IGameObject actor) => "";
 
-	public static string GetLastname(this GameObject actor) => actor.Name.TextValue;
+	public static string GetLastname(this IGameObject actor) => actor.Name.TextValue;
 
 	public static string ByteToString(this byte[] arr) => Encoding.Default.GetString(arr).Replace("\0", string.Empty);
 
