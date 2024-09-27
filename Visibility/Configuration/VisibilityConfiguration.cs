@@ -21,6 +21,7 @@ public class VisibilityConfiguration: IPluginConfiguration
 	public bool HideStar;
 	public bool AdvancedEnabled;
 	public bool EnableContextMenu;
+	public bool ShowTargetOfTarget;
 
 	public List<VoidItem> VoidList { get; } = new();
 
@@ -61,8 +62,11 @@ public class VisibilityConfiguration: IPluginConfiguration
 		{
 			this.EnableContextMenu.ToggleBool(val, toggle);
 
-			VisibilityPlugin.Instance.ContextMenu.Toggle(val, toggle);
+			// TODO: Switch to dalamud service
+			// VisibilityPlugin.Instance.ContextMenu.Toggle(val, toggle);
 		};
+
+		this.SettingDictionary[nameof(this.ShowTargetOfTarget)] = (val, toggle, _) => this.ShowTargetOfTarget.ToggleBool(val, toggle);
 
 		this.SettingDictionary[nameof(TerritoryConfig.HidePet)] = (val, toggle, edit) =>
 		{
