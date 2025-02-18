@@ -12,13 +12,14 @@ using Dalamud.Interface.Windowing;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 
-using Lumina.Excel.GeneratedSheets;
-
 using Visibility.Api;
 using Visibility.Configuration;
 using Visibility.Ipc;
 using Visibility.Utils;
 using Visibility.Void;
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
+
+using Lumina.Excel.Sheets;
 
 namespace Visibility;
 
@@ -343,12 +344,11 @@ public class VisibilityPlugin: IDalamudPlugin
 			return;
 		}
 
-		World? world = Service.DataManager.GetExcelSheet<World>()?.SingleOrDefault(
-			x =>
-				x.DataCenter.Value?.Region != 0 &&
-				x.Name.ToString().Equals(args[2], StringComparison.InvariantCultureIgnoreCase));
+		World? world = Service.DataManager.GetExcelSheet<World>().SingleOrDefault(x =>
+			x.DataCenter.ValueNullable?.Region != 0 &&
+			x.Name.ToString().Equals(args[2], StringComparison.InvariantCultureIgnoreCase));
 
-		if (world == default(World))
+		if (world is null)
 		{
 			Service.ChatGui.Print(
 				this.PluginLocalization.InvalidWorldNameError(this.PluginLocalization.VoidListName, args[2]));
@@ -358,28 +358,42 @@ public class VisibilityPlugin: IDalamudPlugin
 		string playerName = $"{args[1]}";
 
 		VoidItem voidItem;
-		IGameObject? gameObject = Service.ObjectTable.SingleOrDefault(
-			x => x is IPlayerCharacter character && character.HomeWorld.Id == world.RowId &&
-			     character.Name.TextValue.Equals(playerName, StringComparison.InvariantCultureIgnoreCase));
+		IGameObject? playerCharacter = Service.ObjectTable.SingleOrDefault(
+			x => x is IPlayerCharacter character && character.HomeWorld.Value.RowId == world.Value.RowId &&
+			     character.Name.TextValue.Equals(playerName, StringComparison.InvariantCultureIgnoreCase)) as IPlayerCharacter;
 
-		if (gameObject is IPlayerCharacter actor)
+		if (playerCharacter != null)
 		{
-			voidItem = new VoidItem(actor, args.Length == 3 ? string.Empty : args[3], command == "VoidUIManual");
+			unsafe
+			{
+				Character* character = (Character*)playerCharacter.Address;
+				voidItem = new VoidItem
+				{
+					Id = character->AccountId,
+					Name = character->NameString,
+					HomeworldId = world.Value.RowId,
+					HomeworldName = world.Value.Name.ToString(),
+					Reason = args.Length == 3 ? string.Empty : args[3],
+					Manual = command == "VoidUIManual"
+				};
+			}
 		}
 		else
 		{
-			voidItem = new VoidItem(
-				playerName,
-				world.Name,
-				world.RowId,
-				args.Length == 3 ? string.Empty : args[3],
-				command == "VoidUIManual");
+			voidItem = new VoidItem
+			{
+				Name = playerName,
+				HomeworldId = world.Value.RowId,
+				HomeworldName = world.Value.Name.ToString(),
+				Reason = args.Length == 3 ? string.Empty : args[3],
+				Manual = command == "VoidUIManual"
+			};
 		}
 
 		SeString playerString = new(
-			new PlayerPayload(playerName, world.RowId),
+			new PlayerPayload(playerName, world.Value.RowId),
 			new IconPayload(BitmapFontIcon.CrossWorld),
-			new TextPayload(world.Name));
+			new TextPayload(world.Value.Name.ToString()));
 
 		if (!this.Configuration.VoidList.Any(
 			    x =>
@@ -388,9 +402,9 @@ public class VisibilityPlugin: IDalamudPlugin
 			this.Configuration.VoidList.Add(voidItem);
 			this.Configuration.Save();
 
-			if (gameObject != null)
+			if (playerCharacter != null)
 			{
-				this.RemoveChecked(gameObject.EntityId);
+				this.RemoveChecked(playerCharacter.EntityId);
 			}
 
 			Service.ChatGui.Print(
@@ -410,14 +424,28 @@ public class VisibilityPlugin: IDalamudPlugin
 			         && x.EntityId != 0
 			         && x.EntityId != Service.ClientState.LocalPlayer?.EntityId
 			         && x.EntityId == Service.ClientState.LocalPlayer?.TargetObjectId) is IPlayerCharacter
-		    actor)
+		    playerCharacter)
 		{
-			VoidItem voidItem = new(actor, arguments, false);
+			VoidItem voidItem;
+
+			unsafe
+			{
+				Character* character = (Character*)playerCharacter.Address;
+				voidItem = new VoidItem
+				{
+					Id = character->AccountId,
+					Name = character->NameString,
+					HomeworldId = character->HomeWorld,
+					HomeworldName = playerCharacter.HomeWorld.Value.Name.ToString(),
+					Reason = arguments,
+					Manual = false
+				};
+			}
 
 			SeString playerString = new(
-				new PlayerPayload(actor.Name.TextValue, actor.HomeWorld.GameData!.RowId),
+				new PlayerPayload(playerCharacter.Name.TextValue, playerCharacter.HomeWorld.Value.RowId),
 				new IconPayload(BitmapFontIcon.CrossWorld),
-				new TextPayload(actor.HomeWorld.GameData!.Name));
+				new TextPayload(playerCharacter.HomeWorld.Value.Name.ToString()));
 
 			if (!this.Configuration.VoidList.Any(
 				    x =>
@@ -425,7 +453,7 @@ public class VisibilityPlugin: IDalamudPlugin
 			{
 				this.Configuration.VoidList.Add(voidItem);
 				this.Configuration.Save();
-				this.RemoveChecked(actor.EntityId);
+				this.RemoveChecked(playerCharacter.EntityId);
 				Service.ChatGui.Print(
 					this.PluginLocalization.EntryAdded(this.PluginLocalization.VoidListName, playerString));
 			}
@@ -458,12 +486,11 @@ public class VisibilityPlugin: IDalamudPlugin
 			return;
 		}
 
-		World? world = Service.DataManager.GetExcelSheet<World>()?.SingleOrDefault(
-			x =>
-				x.DataCenter.Value?.Region != 0 &&
-				x.Name.ToString().Equals(args[2], StringComparison.InvariantCultureIgnoreCase));
+		World? world = Service.DataManager.GetExcelSheet<World>().SingleOrDefault(x =>
+			x.DataCenter.ValueNullable?.Region != 0 &&
+			x.Name.ToString().Equals(args[2], StringComparison.InvariantCultureIgnoreCase));
 
-		if (world == default(World))
+		if (world is null)
 		{
 			Service.ChatGui.Print(
 				this.PluginLocalization.InvalidWorldNameError(this.PluginLocalization.WhitelistName, args[2]));
@@ -472,24 +499,45 @@ public class VisibilityPlugin: IDalamudPlugin
 
 		string playerName = $"{args[1]}";
 
-		IPlayerCharacter? actor = Service.ObjectTable.SingleOrDefault(
+		IPlayerCharacter? playerCharacter = Service.ObjectTable.SingleOrDefault(
 			x =>
-				x is IPlayerCharacter character && character.HomeWorld.Id == world.RowId &&
+				x is IPlayerCharacter character && character.HomeWorld.Value.RowId == world.Value.RowId &&
 				character.Name.TextValue.Equals(playerName, StringComparison.Ordinal)) as IPlayerCharacter;
 
-		VoidItem item = actor == null
-			? new VoidItem(
-				playerName,
-				world.Name,
-				world.RowId,
-				args.Length == 3 ? string.Empty : args[3],
-				command == "WhitelistUIManual")
-			: new VoidItem(actor, args.Length == 3 ? string.Empty : args[3], command == "WhitelistUIManual");
+		VoidItem item;
+
+		if (playerCharacter != null)
+		{
+			unsafe
+			{
+				Character* character = (Character*)playerCharacter.Address;
+				item = new VoidItem
+				{
+					Id = character->ContentId,
+					Name = character->NameString,
+					HomeworldId = world.Value.RowId,
+					HomeworldName = world.Value.Name.ToString(),
+					Reason = args.Length == 3 ? string.Empty : args[3],
+					Manual = command == "WhitelistUIManual"
+				};
+			}
+		}
+		else
+		{
+			item = new VoidItem
+			{
+				Name = playerName,
+				HomeworldId = world.Value.RowId,
+				HomeworldName = world.Value.Name.ToString(),
+				Reason = args.Length == 3 ? string.Empty : args[3],
+				Manual = command == "WhitelistUIManual"
+			};
+		}
 
 		SeString playerString = new(
-			new PlayerPayload(playerName, world.RowId),
+			new PlayerPayload(playerName, world.Value.RowId),
 			new IconPayload(BitmapFontIcon.CrossWorld),
-			new TextPayload(world.Name));
+			new TextPayload(world.Value.Name.ToString()));
 
 		if (!this.Configuration.Whitelist.Any(
 			    x =>
@@ -498,10 +546,10 @@ public class VisibilityPlugin: IDalamudPlugin
 			this.Configuration.Whitelist.Add(item);
 			this.Configuration.Save();
 
-			if (actor != null)
+			if (playerCharacter != null)
 			{
-				this.RemoveChecked(actor.EntityId);
-				this.ShowPlayer(actor.EntityId);
+				this.RemoveChecked(playerCharacter.EntityId);
+				this.ShowPlayer(playerCharacter.EntityId);
 			}
 
 			Service.ChatGui.Print(
@@ -521,14 +569,28 @@ public class VisibilityPlugin: IDalamudPlugin
 			         && x.EntityId != 0
 			         && x.EntityId != Service.ClientState.LocalPlayer?.EntityId
 			         && x.EntityId == Service.ClientState.LocalPlayer?.TargetObjectId) is IPlayerCharacter
-		    actor)
+		    playerCharacter)
 		{
-			VoidItem item = new(actor, arguments, false);
+			VoidItem item;
+
+			unsafe
+			{
+				Character* character = (Character*)playerCharacter.Address;
+				item = new VoidItem
+				{
+					Id = character->ContentId,
+					Name = character->NameString,
+					HomeworldId = character->HomeWorld,
+					HomeworldName = playerCharacter.HomeWorld.Value.Name.ToString(),
+					Reason = arguments,
+					Manual = false
+				};
+			}
 
 			SeString playerString = new(
-				new PlayerPayload(actor.Name.TextValue, actor.HomeWorld.GameData!.RowId),
+				new PlayerPayload(playerCharacter.Name.TextValue, playerCharacter.HomeWorld.Value.RowId),
 				new IconPayload(BitmapFontIcon.CrossWorld),
-				new TextPayload(actor.HomeWorld.GameData!.Name));
+				new TextPayload(playerCharacter.HomeWorld.Value.Name.ToString()));
 
 			if (!this.Configuration.Whitelist.Any(
 				    x =>
@@ -536,8 +598,8 @@ public class VisibilityPlugin: IDalamudPlugin
 			{
 				this.Configuration.Whitelist.Add(item);
 				this.Configuration.Save();
-				this.RemoveChecked(actor.EntityId);
-				this.ShowPlayer(actor.EntityId);
+				this.RemoveChecked(playerCharacter.EntityId);
+				this.ShowPlayer(playerCharacter.EntityId);
 				Service.ChatGui.Print(
 					this.PluginLocalization.EntryAdded(this.PluginLocalization.WhitelistName, playerString));
 			}
