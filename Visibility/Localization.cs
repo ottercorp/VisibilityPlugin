@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -16,7 +16,7 @@ public class Localization
 
 	public Language CurrentLanguage;
 
-	public Localization(Language language = Language.English)
+	public Localization(Language language = Language.ChineseSimplified)
 	{
 		this.LoadStrings(Language.English);
 		this.LoadStrings(Language.French);
@@ -29,7 +29,7 @@ public class Localization
 		this.LoadStrings(Language.Japanese);
 		this.LoadStrings(Language.ChineseSimplified);
 		this.LoadStrings(Language.ChineseTraditional);
-		this.CurrentLanguage = this.AvailableLanguages.Contains(language) ? language : Language.English;
+		this.CurrentLanguage = this.AvailableLanguages.Contains(language) ? language : Language.ChineseSimplified;
 	}
 
 	private void LoadStrings(Language language)
